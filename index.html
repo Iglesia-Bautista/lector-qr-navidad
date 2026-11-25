@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control de acceso - Navidad 2026</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f5f7;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      color: #243447;
+    }
+    .contenedor {
+      max-width: 500px;
+      margin: 20px auto;
+      background: white;
+      padding: 22px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px #0002;
+    }
+    h1 { font-size: 23px; }
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 16px;
+      border-radius: 7px;
+    }
+    input { border: 1px solid #bbb; }
+    button {
+      border: 0;
+      background: #24476b;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #reader { width: 100%; margin-top: 20px; }
+    #resultado {
+      display: none;
+      margin-top: 18px;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+    }
+    .correcto { background: #e0f2e5; color: #175b2b; }
+    .error { background: #fbe4e4; color: #922; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h1>Control de acceso</h1>
+    <p>Comida de Navidad 2026</p>
+
+    <label for="tablet">Identificador de la tablet</label>
+    <input id="tablet" value="Tablet 1">
+
+    <button id="botonIniciar" onclick="iniciarCamara()">
+      ACTIVAR CÁMARA
+    </button>
+
+    <div id="reader"></div>
+    <div id="resultado"></div>
+
+    <button id="botonSiguiente" onclick="iniciarCamara()" style="display:none">
+      ESCANEAR SIGUIENTE ENTRADA
+    </button>
+  </div>
+
+  <script>
+    let escaner = null;
+    let escaneando = false;
+
+    function iniciarCamara() {
+      const boton = document.getElementById("botonIniciar");
+      boton.disabled = true;
+      boton.textContent = "ACTIVANDO CÁMARA...";
+
+      document.getElementById("resultado").style.display = "none";
+      document.getElementById("botonSiguiente").style.display = "none";
+
+      if (!escaner) {
+        escaner = new Html5Qrcode("reader");
+      }
+
+      Html5Qrcode.getCameras().then(function(camaras) {
+        if (!camaras.length) {
+          throw new Error("No se ha encontrado ninguna cámara.");
+        }
+
+        const trasera = camaras.find(function(c) {
+          return /back|rear|environment|trasera|posterior/i.test(c.label);
+        });
+
+        const elegida = trasera || camaras[camaras.length - 1];
+
+        return escaner.start(
+          elegida.id,
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          function(codigo) {
+            procesarCodigo(codigo);
+          }
+        );
+      }).then(function() {
+        escaneando = true;
+        boton.style.display = "none";
+      }).catch(function(error) {
+        boton.disabled = false;
+        boton.textContent = "ACTIVAR CÁMARA";
+        mostrarResultado(
+          "No se pudo abrir la cámara",
+          error.message || error,
+          "error"
+        );
+      });
+    }
+
+    function procesarCodigo(codigo) {
+      if (!escaneando) return;
+      escaneando = false;
+
+      escaner.stop().then(function() {
+        document.getElementById("botonSiguiente").style.display = "block";
+        mostrarResultado(
+          "Código QR leído correctamente",
+          "Identificador leído: " + codigo,
+          "correcto"
+        );
+      });
+    }
+
+    function mostrarResultado(titulo, detalle, clase) {
+      const resultado = document.getElementById("resultado");
+      resultado.className = clase;
+      resultado.innerHTML = "<strong>" + titulo +
+        "</strong><p></p>";
+      resultado.querySelector("p").textContent = detalle;
+      resultado.style.display = "block";
+    }
+  </script>
+</body>
+</html>
