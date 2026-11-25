@@ -40,6 +40,10 @@
       font-weight: bold;
       cursor: pointer;
     }
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
     #reader { width: 100%; margin-top: 20px; }
     #resultado {
       display: none;
@@ -73,8 +77,14 @@
   </div>
 
   <script>
+    const URL_APPS_SCRIPT =
+      "https://script.google.com/a/macros/iblacy.org/s/AKfycbxmp4kJKjg5YPOgXuyh2zA8axREG-_OZnt0O_ChOpc3vTPhwgPfXwAiSSSxOKYqYgb_/exec";
+
     let escaner = null;
     let escaneando = false;
+    let consultaEnCurso = false;
+    let temporizadorConsulta = null;
+    let scriptConsulta = null;
 
     function iniciarCamara() {
       const boton = document.getElementById("botonIniciar");
@@ -109,6 +119,7 @@
       }).then(function() {
         escaneando = true;
         boton.style.display = "none";
+        boton.disabled = false;
       }).catch(function(error) {
         boton.disabled = false;
         boton.textContent = "ACTIVAR CÁMARA";
@@ -121,25 +132,132 @@
     }
 
     function procesarCodigo(codigo) {
-      if (!escaneando) return;
+      if (!escaneando || consultaEnCurso) return;
+
       escaneando = false;
+      consultaEnCurso = true;
 
       escaner.stop().then(function() {
-        document.getElementById("botonSiguiente").style.display = "block";
         mostrarResultado(
-          "Código QR leído correctamente",
-          "Identificador leído: " + codigo,
+          "COMPROBANDO ENTRADA...",
+          "Estamos verificando el código QR. Espera un momento.",
           "correcto"
         );
+
+        registrarEntrada(codigo);
+      }).catch(function(error) {
+        consultaEnCurso = false;
+        mostrarResultado(
+          "Error al detener la cámara",
+          error.message || error,
+          "error"
+        );
+        mostrarBotonSiguiente();
       });
+    }
+
+    function registrarEntrada(codigo) {
+      const tablet = document.getElementById("tablet").value.trim() || "Tablet 1";
+
+      window.respuestaAcceso = function(respuesta) {
+        clearTimeout(temporizadorConsulta);
+
+        if (scriptConsulta) {
+          scriptConsulta.remove();
+          scriptConsulta = null;
+        }
+
+        consultaEnCurso = false;
+
+        if (respuesta && respuesta.ok) {
+          const detalle = respuesta.mensaje ||
+            "Entrada registrada correctamente.";
+
+          mostrarResultado(
+            "ENTRADA AUTORIZADA",
+            detalle,
+            "correcto"
+          );
+        } else {
+          const detalle = respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No se ha podido validar esta entrada.";
+
+          mostrarResultado(
+            "ENTRADA NO AUTORIZADA",
+            detalle,
+            "error"
+          );
+        }
+
+        mostrarBotonSiguiente();
+      };
+
+      const parametros = new URLSearchParams({
+        pagina: "apiAcceso",
+        identificador: codigo,
+        tablet: tablet,
+        callback: "respuestaAcceso"
+      });
+
+      scriptConsulta = document.createElement("script");
+      scriptConsulta.src = URL_APPS_SCRIPT + "?" + parametros.toString();
+
+      scriptConsulta.onerror = function() {
+        clearTimeout(temporizadorConsulta);
+        consultaEnCurso = false;
+
+        if (scriptConsulta) {
+          scriptConsulta.remove();
+          scriptConsulta = null;
+        }
+
+        mostrarResultado(
+          "ERROR DE CONEXIÓN",
+          "No se ha podido contactar con el sistema. Comprueba la conexión y vuelve a intentarlo.",
+          "error"
+        );
+
+        mostrarBotonSiguiente();
+      };
+
+      temporizadorConsulta = setTimeout(function() {
+        consultaEnCurso = false;
+
+        if (scriptConsulta) {
+          scriptConsulta.remove();
+          scriptConsulta = null;
+        }
+
+        mostrarResultado(
+          "TIEMPO DE ESPERA AGOTADO",
+          "No hemos recibido respuesta del sistema. Comprueba la conexión antes de volver a escanear.",
+          "error"
+        );
+
+        mostrarBotonSiguiente();
+      }, 20000);
+
+      document.body.appendChild(scriptConsulta);
+    }
+
+    function mostrarBotonSiguiente() {
+      document.getElementById("botonSiguiente").style.display = "block";
     }
 
     function mostrarResultado(titulo, detalle, clase) {
       const resultado = document.getElementById("resultado");
       resultado.className = clase;
-      resultado.innerHTML = "<strong>" + titulo +
-        "</strong><p></p>";
-      resultado.querySelector("p").textContent = detalle;
+      resultado.replaceChildren();
+
+      const encabezado = document.createElement("strong");
+      encabezado.textContent = titulo;
+
+      const parrafo = document.createElement("p");
+      parrafo.textContent = detalle;
+
+      resultado.appendChild(encabezado);
+      resultado.appendChild(parrafo);
       resultado.style.display = "block";
     }
   </script>
