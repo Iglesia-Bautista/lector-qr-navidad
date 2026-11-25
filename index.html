@@ -245,21 +245,46 @@
       document.getElementById("botonSiguiente").style.display = "block";
     }
 
-    function mostrarResultado(titulo, detalle, clase) {
-      const resultado = document.getElementById("resultado");
-      resultado.className = clase;
-      resultado.replaceChildren();
+   
+function mostrarResultado(titulo, detalle, clase, datos) {
+  const resultado = document.getElementById("resultado");
+  resultado.className = clase;
+  resultado.replaceChildren();
 
-      const encabezado = document.createElement("strong");
-      encabezado.textContent = titulo;
+  const encabezado = document.createElement("strong");
+  encabezado.textContent = titulo;
+  resultado.appendChild(encabezado);
 
-      const parrafo = document.createElement("p");
-      parrafo.textContent = detalle;
+  const parrafo = document.createElement("p");
+  parrafo.textContent = detalle;
+  resultado.appendChild(parrafo);
 
-      resultado.appendChild(encabezado);
-      resultado.appendChild(parrafo);
-      resultado.style.display = "block";
-    }
-  </script>
-</body>
-</html>
+  if (datos) {
+    const ficha = document.createElement("div");
+    ficha.style.marginTop = "15px";
+    ficha.style.padding = "15px";
+    ficha.style.background = "#ffffff";
+    ficha.style.color = "#222222";
+    ficha.style.borderRadius = "10px";
+    ficha.style.textAlign = "left";
+
+    const nombre = document.createElement("p");
+    nombre.innerHTML = "<strong>Nombre:</strong> ";
+    nombre.appendChild(document.createTextNode(datos.nombre || ""));
+    
+    const numero = document.createElement("p");
+    numero.innerHTML = "<strong>Número de entrada:</strong> ";
+    numero.appendChild(document.createTextNode(datos.numeroEntrada || ""));
+
+    const menu = document.createElement("p");
+    menu.innerHTML = "<strong>Menú:</strong> ";
+    menu.appendChild(document.createTextNode(datos.menu || ""));
+
+    ficha.appendChild(nombre);
+    ficha.appendChild(numero);
+    ficha.appendChild(menu);
+    resultado.appendChild(ficha);
+  }
+
+  resultado.style.display = "block";
+}
