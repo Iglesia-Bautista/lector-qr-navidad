@@ -180,16 +180,19 @@
   respuesta
 );
         } else {
-          const detalle = respuesta && respuesta.mensaje
-            ? respuesta.mensaje
-            : "No se ha podido validar esta entrada.";
+  const duplicada = respuesta && respuesta.duplicada;
 
-          mostrarResultado(
-            "ENTRADA NO AUTORIZADA",
-            detalle,
-            "error"
-          );
-        }
+  const detalle = respuesta && respuesta.mensaje
+    ? respuesta.mensaje
+    : "No se ha podido validar esta entrada.";
+
+  mostrarResultado(
+    duplicada ? "ENTRADA YA UTILIZADA" : "ENTRADA NO AUTORIZADA",
+    detalle,
+    "error",
+    duplicada ? respuesta : null
+  );
+}
 
         mostrarBotonSiguiente();
       };
